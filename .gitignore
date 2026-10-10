@@ -1,5 +1,6 @@
-# 评审过程产物（临时文件，不入库）
+# 评审过程产物（PRD 复查的临时 JSON，不入库）
 .review-*.json
 
-# 一次性迁移脚本
-finish-migration.ps1
+# 一次性迁移/排查脚本（迁移已完成，若再出现不入库）
+*.ps1
+.migration-*
