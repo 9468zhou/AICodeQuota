@@ -45,25 +45,30 @@
 
 ### 2.1 必须实现
 
-| #   | 功能                           | 来源               | 备注                                         |
-| --- | ------------------------------ | ------------------ | -------------------------------------------- |
-| F1  | 智谱 Z.ai 额度监控             | ZBar + Coding-Plan | 双源认证：本地 ZCode 凭证优先 + API Key 兜底 |
-| F2  | 智谱账号一键切换               | ZBar               | 快照捕获 + 事务切换 + 自动切换                |
-| F3  | 托盘图标显示额度百分比         | Coding-Plan        | 纯代码渲染点阵数字 + 3 色阈值 + 加载动画      |
-| F4  | DeepSeek 额度监控              | ZBar               | 仅 API Key（不做网页登录）                    |
-| F5  | DeepSeek 服务状态监控          | Coding-Plan        | Flashcat 90 天可用率                         |
-| F6  | MiniMax 额度监控               | ZBar + Coding-Plan | API Key                                      |
-| F7  | Claude Code 用量导入           | ZBar               | OAuth 实时额度 + 会话 Token                  |
-| F8  | Kimi Code 用量导入             | ZBar               | OAuth 设备码登录 + 额度                      |
-| F9  | 会话 Token 悬浮窗              | ZBar               | 独立窗口，最多 5 会话                        |
-| F10 | 周额度对比视图                 | ZBar               | 90 天快照周期切分                            |
-| F11 | 价格配置 + models.dev 在线同步 | ZBar               | 多级模型名匹配（精确/归一/变体渐进）         |
-| F12 | 国际化（简体中文 / English）   | Coding-Plan        | 约 360 词条（以最终实现为准对齐）            |
-| F13 | 3 种窗口固定模式               | Coding-Plan        | unpinned / pinned-top / pinned-desktop       |
-| F14 | 内存节省模式                   | Coding-Plan        | 隐藏即销毁                                   |
-| F15 | 配置加密 + 原子写入 + 6 步迁移 | Coding-Plan        | 单文件配置                                   |
-| F16 | 自动更新                       | ZBar               | tauri-plugin-updater，GitHub + Gitee 双源    |
-| F17 | 网络代理                       | ZBar               | env > 系统代理 > 直连，支持 http/socks5      |
+> **范围说明**：下表为 **v1.0 全量功能范围**。属于 **MVP（托盘优先交付）** 的项已在「MVP」列标注，详见 §十一。
+> **重要**：本表「必须实现」≠「MVP 必须」——未标 MVP 的项属 v1.0 交付，不进入 MVP 最小集。
+
+| #   | 功能                           | 来源               | MVP | 备注                                              |
+| --- | ------------------------------ | ------------------ | --- | ------------------------------------------------- |
+| F1  | 智谱 Z.ai 额度监控             | ZBar + Coding-Plan | ✅  | 双源认证：本地 ZCode 凭证优先 + API Key 兜底       |
+| F2  | 智谱账号一键切换               | ZBar               | —   | 快照捕获 + 事务切换 + 自动切换                     |
+| F3  | 托盘图标显示额度百分比         | Coding-Plan        | ✅  | 纯代码渲染点阵数字 + 3 色阈值 + 加载动画           |
+| F4  | DeepSeek 额度监控              | ZBar               | —   | 仅 API Key（余额型，不进托盘聚合 §1.6.5）          |
+| F5  | DeepSeek 服务状态监控          | Coding-Plan        | —   | Flashcat 90 天可用率                              |
+| F6  | MiniMax 额度监控               | ZBar + Coding-Plan | ✅  | API Key                                           |
+| F7  | [CC] 用量导入                  | ZBar               | ◐   | OAuth 实时额度 ✅ / 会话 Token 导入 —              |
+| F8  | Kimi Code 用量导入             | ZBar               | ◐   | 设备码登录 + 额度 ✅ / 会话 Token 导入 —           |
+| F9  | 会话 Token 悬浮窗              | ZBar               | —   | 独立窗口，最多 5 会话                              |
+| F10 | 周额度对比视图                 | ZBar               | —   | 90 天快照周期切分                                  |
+| F11 | 价格配置 + models.dev 在线同步 | ZBar               | —   | 多级模型名匹配（精确/归一/变体渐进）               |
+| F12 | 国际化（简体中文 / English）   | Coding-Plan        | —   | 约 360 词条（以最终实现为准对齐）                  |
+| F13 | 3 种窗口固定模式               | Coding-Plan        | —   | unpinned / pinned-top / pinned-desktop            |
+| F14 | 内存节省模式                   | Coding-Plan        | —   | 隐藏即销毁                                        |
+| F15 | 配置加密 + 原子写入 + 6 步迁移 | Coding-Plan        | ◐   | 加密 + 原子写 ✅ / 6 步迁移 —                      |
+| F16 | 自动更新                       | ZBar               | —   | tauri-plugin-updater，GitHub 单源（§8.1）         |
+| F17 | 网络代理                       | ZBar               | —   | env > 系统代理 > 直连，支持 http/socks5           |
+
+**图例**：✅ = MVP 必须（全量） / ◐ = MVP 部分（详见 §十一 11.2） / — = 非 MVP（v1.0 交付）
 
 ### 2.2 UI 规范（硬约束）
 
@@ -589,6 +594,35 @@ fn min_remaining(entry: &QuotaEntry) -> i32 {
 
 **余额型账户的处置**：DeepSeek 等余额型账户不产出百分比窗口（只有 balance），不参与 lowest/highest 聚合——托盘数字始终来自「有百分比窗口的账户」（智谱/MiniMax/Claude/Kimi）。指定复合键指向余额型账户时显示 `--`。
 
+##### 1.6.5a 托盘聚合的空态与部分失败语义（PRD 缺口补全）
+
+§1.6.5 只定义了单值聚合规则，未定义空态与部分失败时的呈现。以下为**本项目定义**（PRD 原文未覆盖，需开发遵循）：
+
+**五态托盘呈现**（`calculate_display_percent()` 的完整返回语义）：
+
+| 态 | 触发条件 | 图标 | tooltip / title |
+|----|---------|------|-----------------|
+| **正常** | ≥1 个百分比账户有数据 | 点阵数字 + 按剩余着色 | `最低剩余 87%（智谱 个人账号）` |
+| **陈旧** | 有数据但 `now - updatedAt > 3×refreshInterval` | 数字 + 降饱和度（视觉降级） | `87%（数据 5 分钟前）` |
+| **部分失败** | 部分百分比账户失败、部分正常 | **仍显示正常值**（不用 `--`） | `最低剩余 87%（2/4 平台可用）` |
+| **全部失败** | 所有百分比账户均失败 | 灰色 `--` | `数据获取失败（3 分钟前成功）` |
+| **未配置** | 无任何已启用账户 | 灰色 `--` | `未配置任何账户，点击添加` |
+
+**关键裁决**：
+- **部分失败不降级为 `--`**：托盘数字是「当前最该关注的那个额度」，只要有一个源可用，它就有意义。失败源的数量只在 tooltip 体现。
+- **`-1` 哨兵不参与聚合**（§1.6.5 已修）：`lowest`/`highest` 先在「有数据的账户」中取值；全部无数据才回落到 `--`。
+- **「未配置」与「全部失败」在托盘上均显示 `--`，但 tooltip 文案不同**——用户必须能区分「我没配」与「配了但连不上」，这是可诊断性的底线。
+- **多平台归因**：单个 16px 图标位无法表达「哪个平台」，归因信息只在 tooltip / macOS title / 面板中承载。**托盘本身只承载「危险度」，不承载「来源」**——这是图标物理尺寸的硬约束，不做变通。
+
+##### 1.6.5b 托盘展示规则的配置界面（PRD 缺口补全）
+
+§1.6.5 定义了 `trayDisplayRule` 配置项但未说明其 UI 暴露方式。以下为**本项目定义**：
+
+- **设置页位置**：`SettingsPanel.vue` 的「通用设置」区，独立一行「托盘显示规则」
+- **可选值**：`lowest`（最低剩余，默认）/ `highest`（最高剩余）/ 指定账户（下拉，列出所有「有百分比窗口」的账户）
+- **默认值来源**：`AppConfig.trayDisplayRule` 默认 `'lowest'`（§2.2）
+- **空态**：若无任何百分比账户（如仅配置了 DeepSeek），下拉禁用并提示「暂无百分比型账户」；此时托盘恒显示 `--`，tooltip 为「仅配置了余额型账户，无百分比数据可聚合」
+
 ##### 1.6.6 托盘菜单
 
 | 菜单项       | i18n key               | 行为                                                          |
@@ -599,7 +633,7 @@ fn min_remaining(entry: &QuotaEntry) -> i32 {
 | 检查更新     | `tray.checkUpdate`     | 手动触发 tauri-plugin-updater                                 |
 | 重置窗口位置 | `tray.resetPosition`   | 清空 `popupPosition`，下次显示回到默认位置                    |
 | 重置窗口大小 | `tray.resetSize`       | 清空 `popupSize`，恢复默认 300×500（Coding-Plan 同款菜单项）  |
-| 退出         | `tray.quit`            | 退出应用                                                      |
+| 退出         | `tray.quit`            | 退出应用（**注意与「关闭面板」的区别，见 M1.7**）             |
 
 **macOS 菜单栏 title**：`tray.title()` 显示剩余百分比数字（如 `87`），每 30s 随轮询刷新；与静态图标互补（点阵在 22px 菜单栏下辨识度差，百分比数字作为主要信息载体）。Windows 托盘不设 title（无此 UI 惯例）。（ZBar 菜单栏 title 的「今日花费 + 总 Token」摘要不做——那依赖统计链路，与 F3 托盘图标需求无关。）
 
@@ -620,6 +654,60 @@ fn build_tray_icon(percent: i32, size: u32) -> tauri::image::Image<'static> {
 ```
 
 > **已确认（2026-10-09）**：macOS 与 Windows 统一使用点阵数字图标（F3 跨平台一致）；开发期以 44×44@2x 实测校验可读性，若 Retina 实机不可读再回到「macOS 静态图标 + title」备选方案。macOS 同时保留 `tray.title()` 显示同数字（双通道，菜单栏密度高时 title 是更快扫读路径）。
+
+#### 1.7 单实例约束与「关闭面板 / 退出应用」语义（PRD 缺口补全）
+
+PRD 原文未定义这两项，但常驻场景必然遇到。以下为**本项目定义**：
+
+**单实例约束**（新增依赖 `tauri-plugin-single-instance`）：
+
+| 场景 | 行为 |
+|------|------|
+| 应用已在运行，用户再次双击图标 | **不启动第二个进程**；唤起已运行实例的面板并聚焦 |
+| 应用已注册开机自启，用户手动启动 | 同上（这是自启 + 手动双击的必然场景） |
+| 第二实例进程 | 立即退出，把命令行参数转交首实例 |
+
+**为什么必须**（本项目判断）：注册开机自启后用户手动双击 → 必然两个进程 → 两套托盘图标、重复写注册表、**两进程并发原子写（进程内锁跨进程无效）导致 rename 竞争丢更新**。修复成本极低（一个插件 + 二次启动唤起），不做的代价是用户对「为什么有两个图标 / 为什么设置丢了」的直接不信任。
+
+**「关闭面板」vs「退出应用」**：
+
+| 动作 | 语义 | 实现 |
+|------|------|------|
+| 关闭面板窗口（点 X / 失焦 / Esc） | **仅隐藏**，应用继续常驻 | `WindowEvent::CloseRequested` → `api.prevent_close()` + `window.hide()` |
+| 托盘菜单「退出」 | **真正退出进程** | 置退出标志 → `app.exit(0)`（绕过 close 拦截） |
+
+**平台差异**：macOS 关窗不退出是系统惯例（§1.6.7 Accessory 模式）；**Windows 上关窗默认退出进程**，必须显式拦截 `CloseRequested` 改为 hide——否则「常驻」在 Windows 不成立。
+
+#### 1.8 无凭证首启与平台可达性降级（PRD 缺口补全）
+
+PRD 原文 §5.1 默认「存在可加载配置」，未覆盖全空场景；§5.4 仅给 Claude 一句引导。以下为**本项目定义**：
+
+**首次启动空状态**（无任何已启用账户）：
+
+```
+面板首屏（非空白页，而是引导卡）:
+┌─────────────────────────────────────┐
+│  还没有配置任何账户                  │
+│                                      │
+│  已自动检测到：                      │
+│   ✓ 智谱（ZCode 凭证，可直接使用）   │  ← 若检测到本地凭证
+│   ✗ Claude（未找到凭证）             │
+│                                      │
+│  [一键启用智谱]  [手动添加 API Key]  │
+└─────────────────────────────────────┘
+托盘：灰色 --，tooltip「未配置任何账户，点击添加」
+```
+
+**平台可达性前置条件与降级**（每个百分比源的前置不满足时）：
+
+| 源 | 前置条件 | 不满足时的降级与引导 |
+|----|---------|---------------------|
+| 智谱 | 本机已装并登录 ZCode，或手填 API Key | 检测不到本地凭证 → 引导卡提示「可手填 API Key」；两者皆无 → 该源标 `not_configured` |
+| MiniMax | 手填 API Key | 无 Key → `not_configured`，面板显示输入引导 |
+| Claude | 本机存在 `.credentials.json`（跨平台）或 macOS 钥匙串 | 未找到 → 面板提示「请先在 [CC] CLI 中执行 /login」 |
+| Kimi | 用户完成设备码登录 | 未登录 → 面板显示「登录 Kimi」按钮，走设备码流程（§5.5） |
+
+**统一原则**：**任一源的前置不满足都只影响该源自身**，不阻塞其他源、不阻塞托盘（有数据的源照常聚合，§1.6.5a 部分失败语义）。
 
 ---
 
@@ -696,7 +784,7 @@ interface ClaudeAccount {
   id: string;
   enabled: boolean;
   label: string;
-  // Claude 无主动登录流程：凭证从本地读取（macOS 钥匙串 / ~/.claude 凭证文件），
+  // Claude 无主动登录流程：凭证从本地读取（.credentials.json 跨平台 / macOS 钥匙串兜底），
   // 本结构仅在多份本地凭证间做启用/标注；oauthToken 不由用户手填
   credentialRef?: string;     // 本地凭证标识（自动发现后回填）
 }
@@ -1110,7 +1198,12 @@ session_id = 文件名（<uuid>.jsonl → <uuid>）
 
 ```
 数据源: https://api.anthropic.com / claude.ai API
-认证: OAuth access_token（从 macOS 钥匙串 / credentials.json 读取）
+认证: OAuth access_token，按以下优先级自动发现（跨平台，ZBar 同款实现）:
+  ① 环境变量 AICODEQUOTA_CLAUDE_HOME（指向 .claude 根目录，测试/自定义用）
+  ② ~/.claude/.credentials.json（Windows: %USERPROFILE%\.claude\.credentials.json）——全平台通用
+  ③ macOS 专用: 登录钥匙串（security find-generic-password -s "[CC]-credentials" -w）
+     ★ 仅 #[cfg(target_os = "macos")] 编译；Windows/Linux 走 ①②
+  三者任一命中即用；全部未命中 → 面板显示「未找到 Claude 登录凭证（.credentials.json / 钥匙串）」
 额度窗口: 5h / 周 / Sonnet周 / Opus周 / 超额
 缓存: LIVE_LIMITS_CACHE，成功 60s / 失败 15s TTL
 ```
@@ -1258,6 +1351,11 @@ fn fetch_fx_rate() -> Result<(f64, String), String> {
 ### M5: 额度快照与周对比
 
 #### 5.1 额度快照存储（quota_history.jsonl，周对比数据源；从 ZBar 搬 quota_history.rs）
+
+> **与 MVP 解耦说明**：快照写入是 `fetch_zai_quota` 成功后的副产物（每次成功查询 append 一条）。
+> **MVP 阶段不展示周对比（F10 不做），但仍照常写快照**——理由：①写入成本极低（一次 append）；
+> ②避免 MVP→v1.0 升级时历史数据从零开始；③M5.2 的采样前后指纹校验已是 fetch 链路的一部分，
+> 去掉写快照反而要额外剥离逻辑。即「采集与展示解耦」：采集始终开，展示按版本灰度。
 
 **文件**：`~/.aicodequota/quota_history.jsonl`
 
@@ -2082,11 +2180,11 @@ pub struct SwitchOutcome {
 
 ### 5.4 Claude 凭证读取流程
 
-Claude Code 无主动登录流程（ZBar 同款策略）：凭证从本地读取——macOS 钥匙串（`security find-generic-password -s "Claude Code-credentials" -w`）或 `~/.claude` 凭证文件。
+Claude Code 无主动登录流程（ZBar 同款策略）：凭证从本地读取，跨平台三级发现——① `AICODEQUOTA_CLAUDE_HOME` 环境变量 ② `~/.claude/.credentials.json`（Windows 为 `%USERPROFILE%\.claude\.credentials.json`，**全平台通用**）③ macOS 登录钥匙串（`security find-generic-password -s "Claude Code-credentials" -w`，仅 macOS 编译）。
 
 ```
 用户打开 Claude 面板
-  → Rust 自动发现本地凭证（钥匙串 / 凭证文件，M3.6）
+  → Rust 自动发现本地凭证（凭证文件优先，macOS 钥匙串兜底；Windows 走 %USERPROFILE%\.claude\，见 M3.5）
   → 未找到 → 前端显示引导：「请先在 Claude Code CLI 中执行 /login」
   → 找到 → 读取 OAuth access_token（自动刷新，缓存 60s/失败 15s TTL）
   → 查询实时额度（5h/周/Sonnet周/Opus周/超额窗口）
@@ -2228,7 +2326,7 @@ fn safe_error_message(text: &str, max_len: usize) -> String {
 | DeepSeek API Key | 同上 `providers.deepseek` | `providers.deepseek` | 同上 |
 | MiniMax API Key | 同上 `providers.minimax` | `providers.minimax` | 同上 |
 | Kimi OAuth Token | ZBar `~/.zbar/credentials/kimi.json`（明文 0600） | `providers.kimi` | 直接读入后 enc:v1 加密落盘 |
-| Claude 凭证 | 无需导入 | — | 本地钥匙串/凭证文件原地读取，无迁移成本 |
+| Claude 凭证 | 无需导入 | — | `~/.claude/.credentials.json`（跨平台）或 macOS 钥匙串原地读取，无迁移成本 |
 | 价格配置 | ZBar `~/.zbar/pricing.json` | `pricing.json` | 同格式直接复制 |
 | 90 天额度快照 | ZBar `~/.zbar/quota_history.jsonl` | `quota_history.jsonl` | 同 schema 直接复制（QuotaSnapshot 结构未改） |
 | 智谱账号快照 | ZBar `~/.zbar/accounts/*.account.json` | `accounts/` | 同 schema 直接复制（含凭证原文，保持 0600） |
@@ -2432,7 +2530,7 @@ fn safe_error_message(text: &str, max_len: usize) -> String {
 
 - [ ] 移植 `claude.rs`（会话导入 + OAuth 额度 + 流式修订）
 - [ ] 移植 `kimi.rs` + `kimi_oauth.rs`
-- [ ] 实现 Claude OAuth 凭证读取（macOS 钥匙串 / credentials.json）
+- [ ] 实现 Claude 凭证读取（跨平台三级发现：环境变量 / .credentials.json / macOS 钥匙串）
 - [ ] 实现 Kimi 设备码登录流程
 - [ ] 实现各 Provider 的 Vue 面板
 
@@ -2551,6 +2649,146 @@ fn safe_error_message(text: &str, max_len: usize) -> String {
 - [ ] README.md（安装说明 + 使用指南）
 - [ ] 架构文档（模块划分 + 数据流图）
 - [ ] API 文档（Tauri commands + Provider 接口）
+
+### 10.5 验收前提与测试数据依赖（PRD 缺口补全）
+
+PRD 原文未定义验收所需的前置数据条件。以下为**本项目定义**——**验收必须在明确的测试数据前提下进行**，否则「显示 0%」与「显示正确值」无法区分：
+
+| 验收项 | 前置数据条件 | 无数据时的替代验收 |
+|--------|------------|------------------|
+| F1 智谱额度 | 本机已装并登录 ZCode（`~/.zcode/v2/credentials.json` 存在） | 或手填有效 API Key |
+| F6 MiniMax 额度 | 有效 MiniMax API Key | 用无效 Key 验证 `expired` 分支 |
+| F7 Claude 额度 | `~/.claude/.credentials.json` 存在（或 macOS 钥匙串已登录） | 验证「未找到凭证」引导文案 |
+| F8 Kimi 额度 | 已完成设备码登录 | 验证登录按钮与设备码流程 |
+| 托盘聚合 | ≥1 个百分比源可用 | **用 mock 数据源**（§5.1 已定义 CQB_MOCK 类似机制）验证五态渲染 |
+| 部分失败语义 | 需人为构造（如断网 + 保留一个源） | 用 mock 注入「部分失败」响应 |
+| 陈旧值降级 | 需等待 `3×refreshInterval` 或 mock 时间 | mock 注入 `updatedAt` 为过去时刻 |
+
+**关键要求**：**必须提供 mock 数据源**，使「托盘五态（正常/陈旧/部分失败/全部失败/未配置）」与「各平台面板渲染」能在**无真实凭证、无真实网络**的条件下完整验证。这是 MVP 可交付性的前提——否则开发机无法复现失败路径。
+
+### 10.6 平台验证范围（PRD 缺口补全）
+
+PRD 原文 §1.6.6/§1.6.7/§5.2/§5.4 均为 macOS 路径，Windows 等价路径未全部给出。以下为**本项目定义**：
+
+| 平台 | 验证要求 | 说明 |
+|------|---------|------|
+| **Windows 10/11** | **主验证平台**（完整验收） | 开发机即 Windows，所有验收项必须在此平台实测通过 |
+| **macOS 12+** | **次级验证**（能编译、关键路径抽验） | 若开发机无 macOS 环境，`tray.title()`、Accessory 模式、钥匙串读取、popover 效果**降级为「代码就绪、未实机验证」**，并在 README 标注 |
+
+**必须补齐的 Windows 等价路径**（PRD 原文只给 macOS 的）：
+
+| 功能 | macOS（PRD 原文） | Windows（本项目补充） |
+|------|------------------|---------------------|
+| 托盘图标 | 22×22 / 44×44@2x | 16×16 |
+| 菜单栏 title | `tray.title()` 显示百分比 | **无 title**（Windows 托盘无此惯例）→ 数字只在图标内 |
+| 隐藏 Dock | `ActivationPolicy::Accessory` | 不适用 |
+| 面板定位 | y = 25.0（菜单栏下方） | y = `mon_h - win_h - 48.0`（任务栏上方） |
+| Claude 凭证 | 钥匙串 / `.credentials.json` | `%USERPROFILE%\.claude\.credentials.json` |
+| 代理读取 | `scutil --proxy` | `winreg` 读 `HKCU\...\Internet Settings` |
+| 关窗行为 | 默认不退出（Accessory） | **默认退出进程，必须拦截 `CloseRequested` 改为 hide**（M1.7） |
+
+**Win11 托盘溢出区提示**：Windows 11 默认把新托盘图标收进溢出区（需用户手动「钉住」才常驻可见）。README 必须写明这一步——否则用户会认为「装完没反应」。
+
+---
+
+### 10.7 遗留 PRD 内部矛盾（需澄清）
+
+| # | 矛盾点 | 处置 |
+|---|--------|------|
+| 1 | §2.1 F16 写「GitHub + Gitee 双源」，§8.1 写「Gitee 镜像不做」 | **已修**：§2.1 改为「GitHub 单源（§8.1）」 |
+| 2 | §8.1 OWNER 占位 + updater 签名密钥未提供 | **开工前置项**，由用户提供（不阻塞 MVP，F16 不在 MVP 内） |
+
+---
+
+## 十一、MVP 分层与交付范围（本项目新增）
+
+> **背景**：PRD §2.1 把 F1~F17 全部标为「必须实现」，§九 Phase 1~7（17.5~22.5 天）是 v1.0 全量工期，§十 是 v1.0 全量验收。**本章定义 MVP 分层**——MVP 只规定**交付顺序**，不改变 §2.1 的最终功能范围。
+
+### 11.1 MVP 定义与判据
+
+**MVP = 让「托盘上能显示多平台额度」跑通的最小范围。**
+
+判据（唯一）：**去掉它，「托盘显示多平台额度」这条链路是否失效。**
+
+### 11.2 MVP 范围（6 条 F 项，含 3 条部分）
+
+| F 编号 | 项 | MVP 判定 | 范围收窄 |
+|--------|----|---------|---------|
+| **F1** | 智谱 Z.ai 额度监控 | 必须 | 全量（双源认证） |
+| **F3** | 托盘图标显示额度百分比 | 必须 | 全量（点阵 + 3 色 + 动画） |
+| **F6** | MiniMax 额度监控 | 必须 | 全量（API Key + region） |
+| **F7** | [CC] 用量导入 | **部分** | 只做 OAuth 实时额度；**不做**会话 Token 导入 |
+| **F8** | Kimi Code 用量导入 | **部分** | 只做设备码登录 + 额度；**不做**会话 Token 导入 |
+| **F15** | 配置加密 + 原子写入 + 6 步迁移 | **部分** | 做加密 + 原子写；**不做** 6 步迁移（首版不触发） |
+
+**MVP 托盘百分比来源 = 4 个**（智谱 / MiniMax / Claude / Kimi），满足「多平台」定义（≥2）。
+
+### 11.3 MVP 不做的 F 项（12 条）
+
+以下各项**属 §2.1「本期必须实现」**（不是 §1.4「本期根本不做」），只是不进入 MVP 交付集：
+
+| F 编号 | 项 | 剔除依据 |
+|--------|----|---------|
+| F2 | 智谱账号一键切换 | §1.6.5 单账户即可产出托盘数字；§7.1 属第三方写操作，旁挂 |
+| F4 | DeepSeek 额度监控 | §1.6.5「余额型账户不产出百分比窗口、不参与聚合」 |
+| F5 | DeepSeek 服务状态 | 服务可用率非额度百分比，不进 §1.6.5 聚合 |
+| F9 | 会话 Token 悬浮窗 | M6 独立窗口，与托盘是两条链路 |
+| F10 | 周额度对比 | M5.3 历史分析，不产 usedPercent |
+| F11 | 价格配置 + models.dev | M4 输出是金额，托盘不涉及价格 |
+| F12 | 国际化 | 托盘只有数字；§8.5 为全量口径 |
+| F13 | 3 种窗口固定模式 | M1.2 窗口行为，与额度拉取正交 |
+| F14 | 内存节省模式 | M1.3 资源优化，非功能必需 |
+| F16 | 自动更新 | M8 发布运维能力；前置项未就绪 |
+| F17 | 网络代理 | M9 以直连兜底；不在 §1.6.5 来源清单内 |
+| F15 子项 | 6 步迁移 | M2.3「首版无存量用户配置，实际不会触发」 |
+
+### 11.4 MVP 交付顺序（依赖驱动）
+
+```
+第 1 步  基础设施：项目骨架 + 配置持久化（F15 加密+原子写）+ net_config HTTP 客户端
+         + 单实例（M1.7）→ 交付物：可启动、可读写配置
+第 2 步  第一个数据源：F1 智谱额度（双源认证）+ 面板窗口（M1.1）→ 交付物：能拉到真实数据
+第 3 步  托盘：F3（点阵图标 + 3 色阈值 + 五态语义 §1.6.5a）→ 交付物：托盘显示真实数字
+第 4 步  多平台：F6 MiniMax + F7 Claude 额度 + F8 Kimi 额度 → 交付物：多平台聚合成立
+第 5 步  容错与空态：§1.6.5a 五态 + M1.8 无凭证首启 + §10.5 mock 数据源 → 交付物：可完整验收
+```
+
+**预计工期**：**5~6 天**（对比 §九 全量 17.5~22.5 天）。
+
+### 11.5 MVP 验收标准（可客观判定）
+
+区别于 §10.1 的「功能存在性」断言，MVP 验收必须是**可观测断言**：
+
+- [ ] **零配置出数**：本机已登录 ZCode 时，装上后托盘直接显示智谱额度数字（无需任何输入）
+- [ ] **颜色阈值**：数字随剩余额度变色（≥50% 绿 / ≥20% 黄 / <20% 红），阈值来自 `display.colorThresholds`
+- [ ] **点开可解释**：点击托盘 → 面板按平台列出各额度窗口的已用/总量/重置时间
+- [ ] **多平台成立**：至少 2 个百分比源（智谱 + MiniMax/Claude/Kimi 任一）同时显示
+- [ ] **断网降级**：拔网线 → 托盘保留上次值并标注时间戳；超过 `3×refreshInterval` → 视觉降级（陈旧态）
+- [ ] **单源失败隔离**：故意让一个源凭证失效 → 该源显示 `expired`，**其他源与托盘数字不受影响**
+- [ ] **未配置态**：清空所有配置 → 托盘显示 `--` + tooltip「未配置任何账户」，面板显示引导卡（M1.8）
+- [ ] **常驻语义**：macOS 关窗后进程仍在；Windows 关窗后进程仍在（M1.7 拦截生效）
+- [ ] **单实例**：双击图标两次 → 只有一个托盘图标，第二次唤起已有面板
+- [ ] **24 小时稳定**：连续运行 24h，内存无持续增长
+
+### 11.6 MVP 与全量的关系
+
+```
+MVP（5~6 天）                v1.0 全量（17.5~22.5 天）
+├── F1 智谱额度              ├── F1 全量
+├── F3 托盘（全量）           ├── F2 账号切换（M10）
+├── F6 MiniMax               ├── F4/F5 DeepSeek + 服务状态
+├── F7 Claude 额度            ├── F7/F8 会话 Token 导入
+├── F8 Kimi 额度              ├── F9 会话悬浮窗
+├── F15 加密+原子写           ├── F10 周对比
+└── M1.7/M1.8 缺口补全        ├── F11 价格配置
+                              ├── F12 国际化
+                              ├── F13/F14 窗口模式
+                              ├── F15 6 步迁移
+                              ├── F16 自动更新
+                              └── F17 网络代理
+```
+
+**关键**：MVP 是**删除功能类别**（不是把 17 项排成优先级队列）；MVP 完成后，剩余 F 项按 §九 Phase 顺序继续。
 
 ---
 
